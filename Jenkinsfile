@@ -7,10 +7,29 @@ pipeline {
         IMAGE_TAG = "latest"
     }
 
+    tools {
+        jdk 'jdk17'
+        maven 'maven'
+    }
+
     stages {
+
+        stage('Checkout from GitHub') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/Rania-esprit/student_management.git'
+            }
+        }
+
         stage('Build Maven') {
             steps {
                 sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Sonar Analysis') {
+            steps {
+                sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=student -Dsonar.login=XXXX'
             }
         }
 
@@ -27,7 +46,6 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_PASS'
                 )]) {
-
                     sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
                     sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
