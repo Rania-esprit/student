@@ -30,7 +30,12 @@ pipeline {
         stage('Sonar Analysis') {
             steps {
                 withCredentials([string(credentialsId: 'devops_sonar', variable: 'SONAR_TOKEN')]) {
-                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=student -Dsonar.login=$SONAR_TOKEN'
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=student-management \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
                 }
             }
         }
