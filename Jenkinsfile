@@ -17,7 +17,7 @@ pipeline {
         stage('Checkout from GitHub') {
             steps {
                 git branch: 'master',
-                    url: 'https://github.com/Rania-esprit/student_management.git'
+                    url: 'https://github.com/Rania-esprit/student.git'
             }
         }
 
@@ -29,7 +29,9 @@ pipeline {
 
         stage('Sonar Analysis') {
             steps {
-                sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=student -Dsonar.login=XXXX'
+                withCredentials([string(credentialsId: 'devops_sonar', variable: 'SONAR_TOKEN')]) {
+                    sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=student -Dsonar.login=$SONAR_TOKEN'
+                }
             }
         }
 
@@ -46,6 +48,7 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_PASS'
                 )]) {
+
                     sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
                     sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
