@@ -10,7 +10,7 @@ pipeline {
         // ID du Credential Jenkins pour DockerHub
        DOCKERHUB_CREDENTIALS = 'dockerhub-cred'
         IMAGE_NAME = "raniabahri/student"
-        IMAGE_TAG = "latest""
+        IMAGE_TAG = "latest"
     }
 
     tools {
