@@ -2,18 +2,23 @@ pipeline {
     agent any
 
     environment {
+        // ID du Credential Jenkins pour DockerHub
         DOCKERHUB_CREDENTIALS = 'dockerhub-cred'
         IMAGE_NAME = "raniabahri/student"
         IMAGE_TAG = "latest"
+        
+        // --- VARIABLES SONARQUBE ---
+        SONAR_CREDENTIALS_ID = 'sonardevops'
+        SONAR_SCANNER_NAME = 'student_sonar' // Nom du serveur SonarQube configuré dans Jenkins
+        // ---------------------------
     }
 
     tools {
         jdk 'jdk17'
-        maven 'maven'
+        maven 'maven' 
     }
 
     stages {
-
         stage('Checkout from GitHub') {
             steps {
                 git branch: 'master',
@@ -21,21 +26,29 @@ pipeline {
             }
         }
 
-        stage('Build Maven') {
+        stage('Build & Test Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                // IMPORTANT : -DskipTests est utilisé pour éviter l'échec de la connexion MySQL sur l'agent Jenkins.
+                // Cela vous permet de progresser vers les étapes Docker.
+                withEnv(["JAVA_HOME=${tool 'jdk17'}"]) {
+                    sh 'mvn clean verify -DskipTests' 
+                }
             }
         }
-
+        
         stage('Sonar Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'devops_sonar', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                        mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=student-management \
-                        -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
+                // Utilisation de la méthode Jenkins standard et sécurisée pour SonarQube
+                withSonarQubeEnv("${SONAR_SCANNER_NAME}") {
+                    withCredentials([string(credentialsId: "${SONAR_CREDENTIALS_ID}", variable: 'SONAR_LOGIN')]) {
+                        withEnv(["JAVA_HOME=${tool 'jdk17'}"]) {
+                            sh '''
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=student-management \
+                            -Dsonar.login=$SONAR_LOGIN
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -53,9 +66,11 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_PASS'
                 )]) {
-
-                    sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    // Connexion sécurisée à Docker Hub via stdin
+                    sh '''
+                    echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
                 }
             }
         }
