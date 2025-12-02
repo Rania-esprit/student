@@ -8,7 +8,7 @@ pipeline {
         IMAGE_TAG = "latest"
         
         // --- VARIABLES SONARQUBE ---
-        SONAR_CREDENTIALS_ID = 'devops_sonar'
+        SONAR_CREDENTIALS_ID = 'sonardevops'
         SONAR_SCANNER_NAME = 'student_sonar' // Assurez-vous que ce nom correspond à la configuration SonarQube dans Jenkins
         // ---------------------------
     }
