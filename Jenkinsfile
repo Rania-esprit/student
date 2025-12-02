@@ -2,23 +2,23 @@ pipeline {
     agent any
 
     environment {
-        // --- VARIABLES SONARQUBE ---
-        SONAR_CREDENTIALS_ID = 'devops_sonar'
-        // ---------------------------
-        
         // ID du Credential Jenkins pour DockerHub
         DOCKERHUB_CREDENTIALS = 'dockerhub-cred'
         IMAGE_NAME = "raniabahri/student"
         IMAGE_TAG = "latest"
+        
+        // --- VARIABLES SONARQUBE ---
+        SONAR_CREDENTIALS_ID = 'devops_sonar'
+        SONAR_SCANNER_NAME = 'student_sonar' // Nom du serveur SonarQube configuré dans Jenkins
+        // ---------------------------
     }
 
     tools {
         jdk 'jdk17'
-        maven 'maven'
+        maven 'maven' // ASSUMANT QUE VOUS AVEZ RENOMMÉ L'OUTIL JENKINS DE 'M2_HOME' À 'maven'
     }
 
     stages {
-
         stage('Checkout from GitHub') {
             steps {
                 git branch: 'master',
@@ -26,22 +26,26 @@ pipeline {
             }
         }
 
-        stage('Build Maven') {
+        stage('Build & Test Maven') {
             steps {
-                // IMPORTANT: Replaced 'bat' with 'sh' for Linux compatibility
+                // Utilise le JDK 'jdk17' et le Maven 'maven' configurés
                 withEnv(["JAVA_HOME=${tool 'jdk17'}"]) {
-                    sh 'mvn clean package -DskipTests'
+                    sh 'mvn clean verify'
                 }
             }
         }
         
         stage('Sonar Analysis') {
             steps {
-                withSonarQubeEnv('student_sonar') { 
+                // Utilise la configuration SonarQube enregistrée dans Jenkins (nom du serveur: student_sonar)
+                withSonarQubeEnv("${SONAR_SCANNER_NAME}") {
                     withCredentials([string(credentialsId: "${SONAR_CREDENTIALS_ID}", variable: 'SONAR_LOGIN')]) {
                         withEnv(["JAVA_HOME=${tool 'jdk17'}"]) {
-                            // IMPORTANT: Replaced 'bat' with 'sh' and changed %VAR% to $VAR
-                            sh "mvn clean verify sonar:sonar -Dsonar.projectKey=student -Dsonar.login=$SONAR_LOGIN"
+                            sh '''
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=student-management \
+                            -Dsonar.login=$SONAR_LOGIN
+                            '''
                         }
                     }
                 }
@@ -50,7 +54,6 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                // IMPORTANT: Replaced 'bat' with 'sh'
                 sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
@@ -62,10 +65,13 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_PASS'
                 )]) {
-                    // IMPORTANT: Replaced 'bat' with 'sh' and adjusted login syntax for Linux
-                    sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
-                    // IMPORTANT: Replaced 'bat' with 'sh'
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh '''
+                    # Connexion à Docker Hub
+                    echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                    
+                    # Poussée de l'image
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
                 }
             }
         }
