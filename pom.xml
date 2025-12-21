@@ -27,7 +27,6 @@
                 <artifactId>mysql-connector-j</artifactId>
                 <scope>runtime</scope>
             </dependency>
-<<<<<<< HEAD
             <!-- Spring Boot Actuator -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -40,8 +39,6 @@
                 <artifactId>micrometer-registry-prometheus</artifactId>
             </dependency>
 
-=======
->>>>>>> 35d83eb7713e060da5b26a773d8f9fe113cd4d02
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
