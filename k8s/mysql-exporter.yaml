@@ -1,0 +1,47 @@
+# MySQL Exporter avec version stable v0.14.0
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-exporter-deployment
+  namespace: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-exporter
+  template:
+    metadata:
+      labels:
+        app: mysql-exporter
+    spec:
+      containers:
+      - name: mysql-exporter
+        image: prom/mysqld-exporter:v0.14.0
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "root:rootpassword@(mysql-service:3306)/"
+        ports:
+        - containerPort: 9104
+          name: metrics
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-exporter-service
+  namespace: devops
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql-exporter
+  ports:
+  - port: 9104
+    targetPort: 9104
+    protocol: TCP
